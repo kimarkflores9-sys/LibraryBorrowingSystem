@@ -2,105 +2,87 @@ package com.scc.ui;
 
 import com.scc.dao.UserDao;
 import com.scc.model.User;
-import javax.swing.JOptionPane;
+import java.util.Scanner;
 
 public class MenuUI {
-    private final UserDao userDao = new UserDao();
-    private User currentUser = null;
+    private UserDao userDao = new UserDao();
+    private Scanner scanner = new Scanner(System.in);
 
     public void start() {
-        while (true) {
-            if (currentUser == null) {
-                showMainMenu();
-            } else {
-                showUserMenu();
+        boolean running = true;
+        while (running) {
+            System.out.println("\n==================================");
+            System.out.println("      LIBRARY / USER SYSTEM       ");
+            System.out.println("==================================");
+            System.out.println("1. Register Account");
+            System.out.println("2. Login");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
+
+            int choice = -1;
+            try {
+                choice = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Palihog pagbutang og saktong numero.");
+                continue;
+            }
+
+            switch (choice) {
+                case 1:
+                    registerUser();
+                    break;
+                case 2:
+                    loginUser();
+                    break;
+                case 3:
+                    running = false;
+                    System.out.println("Nag-exit na sa sistema. Salamat!");
+                    break;
+                default:
+                    System.out.println("Pilian nga wala sa lista. Sulayi pag-usab.");
             }
         }
     }
 
-    private void showMainMenu() {
-        String[] options = {"Register Account", "Login", "Exit"};
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Select an action:",
-                "Student Library Borrowing System",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
+    private void registerUser() {
+        System.out.println("\n--- REGISTER ACCOUNT ---");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
 
-        switch (choice) {
-            case 0 -> handleRegister();
-            case 1 -> handleLogin();
-            case 2, -1 -> System.exit(0);
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        System.out.print("Enter role (TEACHER / STUDENT): ");
+        String role = scanner.nextLine().trim().toUpperCase();
+
+        if (!role.equals("TEACHER") && !role.equals("STUDENT")) {
+            System.out.println("Ang role kinahanglan TEACHER o STUDENT ra!");
+            return;
+        }
+
+        User user = new User(username, password, role, "PENDING");
+        boolean success = userDao.registerUser(user);
+
+        if (success) {
+            System.out.println("Registration successful! Account status: PENDING");
+        } else {
+            System.out.println("Registration failed (Username might already exist).");
         }
     }
 
-    private void handleRegister() {
-        String username = JOptionPane.showInputDialog(null, "Enter Username:");
-        if (username == null || username.trim().isEmpty()) return;
+    private void loginUser() {
+        System.out.println("\n--- LOGIN ---");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
 
-        String password = JOptionPane.showInputDialog(null, "Enter Password:");
-        if (password == null || password.trim().isEmpty()) return;
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
 
-        String[] roles = {"TEACHER", "STUDENT"};
-        int roleChoice = JOptionPane.showOptionDialog(
-                null,
-                "Select Role:",
-                "Register Role",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                roles,
-                roles[1]
-        );
-
-        if (roleChoice == -1) return;
-        String role = roles[roleChoice];
-
-        if (userDao.registerUser(username, password, role)) {
-            JOptionPane.showMessageDialog(null, "Registered successfully! Status: PENDING", "Success", JOptionPane.INFORMATION_MESSAGE);
+        boolean success = userDao.login(username, password);
+        if (success) {
+            System.out.println("Login successful!");
         } else {
-            JOptionPane.showMessageDialog(null, "Registration failed. Username might exist.", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void handleLogin() {
-        String username = JOptionPane.showInputDialog(null, "Enter Username:");
-        if (username == null || username.trim().isEmpty()) return;
-
-        String password = JOptionPane.showInputDialog(null, "Enter Password:");
-        if (password == null || password.trim().isEmpty()) return;
-
-        User user = userDao.login(username, password);
-        if (user != null) {
-            currentUser = user;
-            JOptionPane.showMessageDialog(null, "Login successful! Welcome " + currentUser.username() + " [" + currentUser.roles() + "]");
-        } else {
-            JOptionPane.showMessageDialog(null, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void showUserMenu() {
-        String[] options = {"Logout", "Exit"};
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Logged in as: " + currentUser.username() + "\nRole: " + currentUser.roles() + "\nStatus: " + currentUser.status(),
-                "User Dashboard",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.INFORMATION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (choice == 0) {
-            currentUser = null;
-            JOptionPane.showMessageDialog(null, "Logged out successfully.");
-        } else {
-            System.exit(0);
+            System.out.println("Login failed! Check your username/password.");
         }
     }
 }

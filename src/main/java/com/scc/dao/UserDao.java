@@ -8,45 +8,37 @@ import java.sql.SQLException;
 
 public class UserDao {
 
-    public boolean registerUser(String username, String password, String role) {
-        String sql = "INSERT INTO users (username, password, roles, status) VALUES (?, ?, ?, 'PENDING')";
-
+    public boolean registerUser(User user) {
+        String sql = "INSERT INTO users (username, password, roles, status) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, username);
-            stmt.setString(2, password);
-            stmt.setString(3, role.toUpperCase());
+            pstmt.setString(1, user.username());
+            pstmt.setString(2, user.password());
+            pstmt.setString(3, user.roles());
+            pstmt.setString(4, user.status());
 
-            return stmt.executeUpdate() > 0;
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
-            System.out.println("Registration Error: " + e.getMessage());
+            System.out.println("Database Error: " + e.getMessage());
             return false;
         }
     }
 
-    public User login(String username, String password) {
+    public boolean login(String username, String password) {
         String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, username);
-            stmt.setString(2, password);
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
 
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return new User(
-                        rs.getInt("id"),
-                        rs.getString("username"),
-                        rs.getString("password"),
-                        rs.getString("roles"),
-                        rs.getString("status")
-                );
-            }
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next(); // True kung naa ang user
         } catch (SQLException e) {
-            System.out.println("Login Error: " + e.getMessage());
+            System.out.println("Database Error: " + e.getMessage());
+            return false;
         }
-        return null;
     }
 }
