@@ -1,44 +1,49 @@
 package com.scc.dao;
 
 import com.scc.model.User;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class UserDao {
 
+    // Register Account (Save new user details with default status PENDING)
     public boolean registerUser(User user) {
-        String sql = "INSERT INTO users (username, password, roles, status) VALUES (?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
+        String sql = "INSERT INTO Users(Username, PasswordHash, Role, Status) VALUES(?, ?, ?, ?)";
+        try (Connection conn = DatabaseConnection.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, user.username());
-            pstmt.setString(2, user.password());
-            pstmt.setString(3, user.roles());
-            pstmt.setString(4, user.status());
-
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getPasswordHash());
+            pstmt.setString(3, user.getRole());
+            pstmt.setString(4, user.getStatus());
+            pstmt.executeUpdate();
+            return true;
         } catch (SQLException e) {
-            System.out.println("Database Error: " + e.getMessage());
+            System.out.println("Registration failed (Username might already exist): " + e.getMessage());
             return false;
         }
     }
 
-    public boolean login(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+    // Login Authentication (Verify username and password against the database)
+    public User loginUser(String username, String password) {
+        String sql = "SELECT * FROM Users WHERE Username = ? AND PasswordHash = ?";
+        try (Connection conn = DatabaseConnection.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
             pstmt.setString(1, username);
             pstmt.setString(2, password);
-
             ResultSet rs = pstmt.executeQuery();
-            return rs.next(); // True kung naa ang user
+
+            if (rs.next()) {
+                return new User(
+                        rs.getInt("UserID"),
+                        rs.getString("Username"),
+                        rs.getString("PasswordHash"),
+                        rs.getString("Role"),
+                        rs.getString("Status"),
+                        rs.getString("LastLoginDate")
+                );
+            }
         } catch (SQLException e) {
-            System.out.println("Database Error: " + e.getMessage());
-            return false;
+            System.out.println("Login error: " + e.getMessage());
         }
+        return null;
     }
 }
